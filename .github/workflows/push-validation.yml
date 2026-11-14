@@ -56,7 +56,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: java-kotlin
-          build-mode: manual
+          build-mode: autobuild
           # build-mode: manual has nothing to do with manually triggering GitHub Actions.
           #It refers specifically to how CodeQL builds your application.
           #CodeQL supports different build modes:
@@ -69,8 +69,9 @@ jobs:
       # Why the First Build Doesn't Count: Your first mvn clean compile ran before CodeQL was initialized, so CodeQL did not observe it and has no record of your code structure.
       # Why clean is Mandatory: If you ran mvn compile without clean, Maven would see that the .class files already exist from the first step, skip compilation (Nothing to compile - all classes are up to date), and leave CodeQL with an empty database—causing the analysis step to fail.
 
-      - name: Build for CodeQL
-        run: mvn -B -ntp clean compile -DskipTests
+# we are trying if autobuild works and solves the CodeQL issue
+#      - name: Build for CodeQL
+#        run: mvn -B -ntp clean compile -DskipTests
 
         #What it does
         #echo -  Prints a message in GitHub Actions logs.
