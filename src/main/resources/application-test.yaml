@@ -1,0 +1,38 @@
+
+spring:
+  application:
+    name: auth-service-test
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+
+
+logging:
+  level:
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+
+app:
+  jwt:
+    issuer: http://localhost:8090
+    audience: fraud-detection-api
+    access-token-ttl: 30m
+  auth:
+    demo-users:
+      - id: 3f2b8c1e-6a52-4d57-9f0a-1c2d3e4f5a6b
+        username: alice
+        password: alice-password
+        scopes: ["transactions:write"]
+      - id: 8d9e7f60-1b2c-4a3d-8e5f-6a7b8c9d0e1f
+        username: bob
+        password: bob-password
+        scopes: ["transactions:read"]

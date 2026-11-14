@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: ${FRAUD_DETECTION_DB_URL:jdbc:postgresql://localhost:5432/fraud_detection_accounts}
+    username: ${FRAUD_DETECTION_DB_USERNAME:postgres}
+    password: ${FRAUD_DETECTION_DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+    # PostgreSQL is your actual database.
+    # HikariCP is the connection pool that manages database connections efficiently.
+    # HikariCP uses the PostgreSQL connection details to connect to your database.
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: update
+      show-sql: true
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  jwt:
+    # Must match app.security.jwt.* in every resource server (transaction-service, ...).
+    issuer: ${JWT_ISSUER:http://localhost:8090}
+    audience: ${JWT_AUDIENCE:fraud-detection-api}
+    access-token-ttl: 30m
+    # Blank = EPHEMERAL dev key (tokens die on restart). In any shared environment point both at PEM files.
+    private-key-path: ${JWT_PRIVATE_KEY_PATH:}   # PKCS#8 PEM
+    public-key-path: ${JWT_PUBLIC_KEY_PATH:}     # X.509 (SubjectPublicKeyInfo) PEM
+
+
+logging:
+  level:
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
