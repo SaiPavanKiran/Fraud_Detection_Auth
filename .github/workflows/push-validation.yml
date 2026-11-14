@@ -96,13 +96,22 @@ jobs:
       #Vulnerable third-party Maven packages.
 
       # OWASP dependency vulnerability scanning
+
+      - name: Cache OWASP Dependency-Check database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: ${{ runner.os }}-owasp-dc-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-owasp-dc-
+
       - name: Dependency vulnerability scanning
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           mvn -B -ntp org.owasp:dependency-check-maven:13.0.0:check \
             -DfailBuildOnCVSS=7 \
-            -DnvdApiKeyEnvironmentVariable=NVD_API_KEY
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+            "-DnvdApiKey=$NVD_API_KEY"
           
           
 
