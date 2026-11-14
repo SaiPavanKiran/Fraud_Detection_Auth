@@ -1,0 +1,60 @@
+
+name: Production Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write # to write to GitHub packages
+
+jobs:
+  release:
+    name: Production Packaging and Publishing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Production artifact packaging
+        run: mvn -B -ntp clean package -DskipTests # skip all tests
+
+      - name: Verify production artifact once
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(target/*.war)
+
+          if [ "${#files[@]}" -ne 1 ]; then
+            echo "Expected exactly one WAR file"
+            exit 1
+          fi
+
+          ls -lh "${files[0]}"
+
+      # Publish WAR to GitHub Packages
+      - name: Publish to GitHub Packages
+        run: |
+          mvn -B -ntp deploy:deploy-file \
+            -Dfile=target/cicd-workflows-1.0.0.war \
+            -DpomFile=pom.xml \
+            -Dpackaging=war \
+            -DrepositoryId=github \
+            -Durl="https://maven.pkg.github.com/saipavankiran/cicdworkflows"
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

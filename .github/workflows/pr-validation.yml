@@ -1,0 +1,127 @@
+name: PR validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened # A new pull request is created.
+      - synchronize # New commits are pushed to an existing PR branch.
+      - reopened # A previously closed PR is reopened.
+
+permissions:
+  contents: read
+  security-events: write
+
+
+
+jobs:
+
+  # running some steps again like unit testing
+  push-validation_unit_testing_rerun:
+    name: re-run unit testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+
+      - name : setup java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: unit testing
+        run: mvn -B -ntp clean test
+
+  integration-testing:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Verify and Install Docker
+        run: |
+          if ! command -v  docker &> /dev/null; then 
+            echo "Docker is not installed. Installing Docker..."
+            sudo apt-get update
+            sudo apt-get install -y docker.io 
+          else 
+            echo "Docker is already installed."
+          fi
+          
+          if ! sudo docker info &> /dev/null; then
+            echo "Docker is not running. Starting Docker..."
+            sudo systemctl start docker
+          else
+             echo "Docker is already running."
+           fi
+          
+           # Verify Docker
+           sudo docker info
+           echo "Docker is ready!"
+
+      - name: Run integration tests
+        run: |
+          mvn -B -ntp test-compile \
+            failsafe:integration-test \
+            failsafe:verify
+
+  qodana:
+    runs-on: ubuntu-latest
+    permissions: #Job-level permission will override the workflow level permissions
+      contents: write # Write to repository contents, including pushing changes.
+      pull-requests: write # Create and modify pull request comments and other PR information.
+      checks: write # Create and update GitHub Check Runs.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }} # It retrieves the commit SHA of the source branch of the pull request.
+          fetch-depth: 0 # fetch only latest commit
+      - name: 'Qodana Scan'
+        uses: JetBrains/qodana-action@v2026.3
+        env:
+          # It is a project token generated through Qodana Cloud.
+          #It helps Qodana:
+          #Authenticate your project with Qodana services.
+          #Connect your CI analysis with your Qodana Cloud project.
+          #Publish or associate analysis results with your project.
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+        with:
+          # When pr-mode is set to true, Qodana analyzes only the files that have been changed
+          pr-mode: false # when true Qodana focuses only on the changed file. else all
+          use-caches: true # This enables GitHub Actions caching for Qodana.
+          post-pr-comment: true # allows Qodana to publish a summary comment on the PR.
+          use-annotations: true # allows Qodana to display findings as GitHub annotations.
+          upload-result: false
+          push-fixes: 'none' # means Qodana will not automatically push code fixes.
+
+  # 5. re scan  Dependencies
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Scan dependencies
+        run: |
+          mvn -B -ntp org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=7
