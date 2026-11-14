@@ -56,7 +56,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: java-kotlin
-          build-mode: autobuild
+          build-mode: manual
           # build-mode: manual has nothing to do with manually triggering GitHub Actions.
           #It refers specifically to how CodeQL builds your application.
           #CodeQL supports different build modes:
@@ -70,8 +70,8 @@ jobs:
       # Why clean is Mandatory: If you ran mvn compile without clean, Maven would see that the .class files already exist from the first step, skip compilation (Nothing to compile - all classes are up to date), and leave CodeQL with an empty database—causing the analysis step to fail.
 
 # we are trying if autobuild works and solves the CodeQL issue
-#      - name: Build for CodeQL
-#        run: mvn -B -ntp clean compile -DskipTests
+      - name: Build for CodeQL
+        run: mvn -B -ntp clean compile -DskipTests
 
         #What it does
         #echo -  Prints a message in GitHub Actions logs.
@@ -85,6 +85,17 @@ jobs:
         run: |
           echo "Checking compiled classes..."
           find target/classes -type f | head -20
+
+      - name: Inspect CodeQL tracer log
+        if: always()
+        run: |
+          echo "Checking CodeQL tracer log..."
+          if [ -f "$CODEQL_TRACER_LOG" ]; then
+            cat "$CODEQL_TRACER_LOG"
+          else
+            echo "Tracer log not found"
+          fi
+
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

@@ -12,6 +12,7 @@ target/
 *.iws
 *.iml
 *.ipr
+codeql-db/
 
 ### Eclipse ###
 .apt_generated
